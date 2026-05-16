@@ -363,4 +363,5 @@ st.dataframe(
     table_df,
     use_container_width=True,
     hide_index=True
-)
+)[ui]
+hideTopBar = true
