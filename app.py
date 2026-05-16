@@ -103,7 +103,7 @@ df = df.dropna(subset=[
 df = df[
     (df[minute_col] >= 10) &
     (df[games_col] >= 7) &
-    (df[assist_col] > 1.5) &
+    (df[assist_col] >= 2.0) &
     (df[turnover_col] > 0)
 ].copy()
 
