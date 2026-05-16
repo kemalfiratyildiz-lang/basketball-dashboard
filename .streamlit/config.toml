@@ -1,0 +1,366 @@
+import streamlit as st
+import pandas as pd
+import plotly.graph_objects as go
+
+# SAYFA AYARI
+st.set_page_config(
+    page_title="Asist / Top Kaybı Dashboard",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# CSS
+st.markdown("""
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+
+html, body, [class*="css"]  {
+    font-family: 'Inter', sans-serif !important;
+}
+
+.stApp {
+    background: linear-gradient(135deg, #f8fbff 0%, #dbeafe 55%, #f1f5f9 100%) !important;
+    color: #0f172a !important;
+}
+
+section[data-testid="stSidebar"] {
+    background: #ffffff !important;
+    border-right: 1px solid #dbeafe !important;
+}
+
+section[data-testid="stSidebar"] * {
+    color: #0f172a !important;
+}
+
+h1, h2, h3, p, label, div, span {
+    color: #0f172a !important;
+}
+
+.block-container {
+    padding-top: 2rem;
+    padding-left: 3rem;
+    padding-right: 3rem;
+}
+
+.chart-card {
+    background: rgba(255,255,255,0.85);
+    border-radius: 24px;
+    padding: 24px;
+    margin-top: 20px;
+    box-shadow: 0 20px 45px rgba(15,23,42,0.08);
+}
+
+.stRadio > div {
+    gap: 10px;
+}
+
+.stRadio label {
+    background: #ffffff !important;
+    border: 1px solid #bfdbfe !important;
+    border-radius: 999px !important;
+    padding: 8px 14px !important;
+    font-weight: 800 !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# BAŞLIK
+st.title("🏀 Asist / Top Kaybı Dashboard")
+
+st.markdown("""
+### 10+ dakika oynayan ve en az 7 maça çıkan oyuncular
+Asist / Top Kaybı analizi
+""")
+
+# DATA
+df = pd.read_csv("bsl_stats.csv")
+
+player_col = "Player"
+team_col = "Team"
+minute_col = "MPG"
+games_col = "GP"
+assist_col = "APG"
+turnover_col = "TOV"
+
+# TAKIM KISALTMALARI
+df[team_col] = df[team_col].replace({
+    "PIN": "KAR",
+    "BAHC": "BAH",
+    "BURS": "BUR",
+    "DEM": "BÜY",
+    "ENEN": "ESE",
+    "MANI": "MAN",
+    "SOC": "ALI",
+    "TUR": "TT"
+})
+
+# NUMERIC
+for col in [minute_col, games_col, assist_col, turnover_col]:
+    df[col] = pd.to_numeric(df[col], errors="coerce")
+
+# TEMİZLE
+df = df.dropna(subset=[
+    player_col,
+    team_col,
+    minute_col,
+    games_col,
+    assist_col,
+    turnover_col
+])
+
+# FİLTRE
+df = df[
+    (df[minute_col] >= 10) &
+    (df[games_col] >= 7) &
+    (df[turnover_col] > 0)
+].copy()
+
+# AST/TOV
+df["AST_TOV_RATIO"] = df[assist_col] / df[turnover_col]
+
+# TAKIMLAR
+teams = sorted(df[team_col].unique())
+
+# OYUNCULAR
+players_all = sorted(df[player_col].unique())
+
+# SIDEBAR
+with st.sidebar:
+
+    st.header("🏀 Takım Filtresi")
+
+    selected_team = st.radio(
+        "Takım seç",
+        ["Tüm Takımlar"] + teams
+    )
+
+    st.divider()
+
+    st.header("⚔️ Oyuncu Karşılaştır")
+
+    compare_players = st.multiselect(
+        "Oyuncu seç",
+        players_all,
+        max_selections=4,
+        placeholder="Oyuncu yaz..."
+    )
+
+# TAKIM FİLTRE
+if selected_team != "Tüm Takımlar":
+    df = df[df[team_col] == selected_team].copy()
+
+# KARŞILAŞTIRMA OYUNCULARI
+highlight_df = df[df[player_col].isin(compare_players)].copy()
+
+base_df = df[~df[player_col].isin(compare_players)].copy()
+
+# GRAFİK
+fig = go.Figure()
+
+# NORMAL OYUNCULAR
+fig.add_trace(go.Scatter(
+    x=base_df[assist_col],
+    y=base_df[turnover_col],
+    mode="markers+text",
+    text=base_df[player_col],
+    textposition="top center",
+    textfont=dict(
+        size=9,
+        color="#0f172a"
+    ),
+    marker=dict(
+        size=base_df[minute_col] * 1.1,
+        color=base_df["AST_TOV_RATIO"],
+        colorscale="Viridis",
+        opacity=0.75,
+        showscale=True,
+        line=dict(
+            width=1,
+            color="white"
+        ),
+        colorbar=dict(
+            title="AST/TOV"
+        )
+    ),
+    customdata=base_df[[team_col, games_col, minute_col, "AST_TOV_RATIO"]],
+    hovertemplate=
+        "<b>%{text}</b><br>" +
+        "Takım: %{customdata[0]}<br>" +
+        "Maç: %{customdata[1]}<br>" +
+        "Dakika: %{customdata[2]:.1f}<br>" +
+        "Asist: %{x:.1f}<br>" +
+        "Top Kaybı: %{y:.1f}<br>" +
+        "AST/TOV: %{customdata[3]:.2f}<extra></extra>",
+    name="Oyuncular"
+))
+
+# KARŞILAŞTIRILAN OYUNCULAR
+if not highlight_df.empty:
+
+    fig.add_trace(go.Scatter(
+        x=highlight_df[assist_col],
+        y=highlight_df[turnover_col],
+        mode="markers+text",
+        text=highlight_df[player_col],
+        textposition="top center",
+        textfont=dict(
+            size=14,
+            color="#dc2626"
+        ),
+        marker=dict(
+            size=highlight_df[minute_col] * 1.8,
+            color="#ef4444",
+            opacity=1,
+            line=dict(
+                width=4,
+                color="#7f1d1d"
+            )
+        ),
+        customdata=highlight_df[[team_col, games_col, minute_col, "AST_TOV_RATIO"]],
+        hovertemplate=
+            "<b>%{text}</b><br>" +
+            "Takım: %{customdata[0]}<br>" +
+            "Maç: %{customdata[1]}<br>" +
+            "Dakika: %{customdata[2]:.1f}<br>" +
+            "Asist: %{x:.1f}<br>" +
+            "Top Kaybı: %{y:.1f}<br>" +
+            "AST/TOV: %{customdata[3]:.2f}<extra></extra>",
+        name="Karşılaştırılan Oyuncular"
+    ))
+
+# LAYOUT
+fig.update_layout(
+
+    title=dict(
+        text="10+ Dakika & 7+ Maç: Asist vs Top Kaybı",
+        x=0.5,
+        font=dict(
+            size=34,
+            color="#0f172a"
+        )
+    ),
+
+    height=780,
+
+    paper_bgcolor="#ffffff",
+    plot_bgcolor="#ffffff",
+
+    font=dict(
+        color="#0f172a",
+        family="Inter"
+    ),
+
+    xaxis=dict(
+        title="Asist Ortalaması (APG)",
+        gridcolor="rgba(15,23,42,0.10)",
+        tickfont=dict(size=16, color="#0f172a"),
+        title_font=dict(size=22, color="#0f172a"),
+        showline=True,
+        linecolor="#111827"
+    ),
+
+    yaxis=dict(
+        title="Top Kaybı Ortalaması (TOV)",
+        gridcolor="rgba(15,23,42,0.10)",
+        tickfont=dict(size=16, color="#0f172a"),
+        title_font=dict(size=22, color="#0f172a"),
+        showline=True,
+        linecolor="#111827"
+    ),
+
+    legend=dict(
+        bgcolor="#ffffff",
+        bordercolor="#cbd5e1",
+        borderwidth=1
+    ),
+
+    margin=dict(
+        l=120,
+        r=80,
+        t=120,
+        b=80
+    )
+)
+
+# GRAFİK GÖSTER
+st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True,
+    config={"displayModeBar": False}
+)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# KARŞILAŞTIRMA TABLOSU
+if compare_players:
+
+    st.subheader("⚔️ Oyuncu Karşılaştırma")
+
+    compare_df = df[df[player_col].isin(compare_players)][[
+        player_col,
+        team_col,
+        games_col,
+        minute_col,
+        assist_col,
+        turnover_col,
+        "AST_TOV_RATIO"
+    ]]
+
+    compare_df = compare_df.sort_values(
+        "AST_TOV_RATIO",
+        ascending=False
+    )
+
+    compare_df = compare_df.rename(columns={
+        player_col: "Oyuncu",
+        team_col: "Takım",
+        games_col: "Maç",
+        minute_col: "Dakika",
+        assist_col: "Asist",
+        turnover_col: "Top Kaybı",
+        "AST_TOV_RATIO": "AST/TOV"
+    })
+
+    st.dataframe(
+        compare_df,
+        use_container_width=True,
+        hide_index=True
+    )
+
+# ANA TABLO
+st.subheader("📋 Oyuncu Tablosu")
+
+table_df = df[[
+    player_col,
+    team_col,
+    games_col,
+    minute_col,
+    assist_col,
+    turnover_col,
+    "AST_TOV_RATIO"
+]]
+
+table_df = table_df.sort_values(
+    "AST_TOV_RATIO",
+    ascending=False
+)
+
+table_df = table_df.rename(columns={
+    player_col: "Oyuncu",
+    team_col: "Takım",
+    games_col: "Maç",
+    minute_col: "Dakika",
+    assist_col: "Asist",
+    turnover_col: "Top Kaybı",
+    "AST_TOV_RATIO": "AST/TOV"
+})
+
+st.dataframe(
+    table_df,
+    use_container_width=True,
+    hide_index=True
+)
