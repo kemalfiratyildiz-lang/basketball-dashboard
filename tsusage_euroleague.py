@@ -14,7 +14,7 @@ df = pd.read_csv("euroleague_merged_dashboard_data.csv")
 df.columns = df.columns.str.strip()
 
 df["Team"] = df["Team"].replace({
-    "LYV": "PAR"
+    "LYV": "PARI"
 })
 
 numeric_cols = [
