@@ -52,11 +52,13 @@ df = df.dropna(subset=[
     "PPG", "FGA", "FTA", "TS%"
 ])
 
-df = df[
+df = df[df["FGA"] > 0].copy()
+
+df_all_players = df.copy()
+
+df_main_filtered = df[
     (df["GP"] >= 8) &
-    (df["MPG"] >= 10) &
-    (df["PPG"] >= 5) &
-    (df["FGA"] > 0)
+    (df["PPG"] >= 8)
 ].copy()
 
 st.markdown("""
@@ -203,7 +205,7 @@ st.title("🏀 BSL Sayı & True Shooting Dashboard")
 left, right = st.columns([1.05, 4.35])
 
 with left:
-    teams = sorted(df["Team"].dropna().unique())
+    teams = sorted(df_all_players["Team"].dropna().unique())
 
     st.markdown('<div class="info-card">', unsafe_allow_html=True)
     st.markdown('<div class="card-title">🏀 Takım Filtrele</div>', unsafe_allow_html=True)
@@ -232,10 +234,12 @@ with left:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    if selected_team != "Tüm Takımlar":
-        df = df[df["Team"] == selected_team].copy()
+    if selected_team == "Tüm Takımlar":
+        active_df = df_main_filtered.copy()
+    else:
+        active_df = df_all_players[df_all_players["Team"] == selected_team].copy()
 
-    players = sorted(df["Player"].dropna().unique())
+    players = sorted(active_df["Player"].dropna().unique())
 
     st.markdown('<div class="info-card">', unsafe_allow_html=True)
     st.markdown('<div class="card-title">👤 Oyuncu Bul / Vurgula</div>', unsafe_allow_html=True)
@@ -317,12 +321,12 @@ with right:
         dict.fromkeys(st.session_state.highlight_players + st.session_state.compare_players)
     )
 
-    df["IS_HIGHLIGHTED"] = df["Player"].isin(selected_graph_players)
+    active_df["IS_HIGHLIGHTED"] = active_df["Player"].isin(selected_graph_players)
 
     if st.session_state.only_compare_graph and st.session_state.compare_players:
-        graph_df = df[df["Player"].isin(st.session_state.compare_players)].copy()
+        graph_df = active_df[active_df["Player"].isin(st.session_state.compare_players)].copy()
     else:
-        graph_df = df.copy()
+        graph_df = active_df.copy()
 
     graph_df["IS_HIGHLIGHTED"] = graph_df["Player"].isin(selected_graph_players)
 
@@ -409,9 +413,14 @@ with right:
             showlegend=False
         ))
 
+    if selected_team == "Tüm Takımlar":
+        chart_title = "MIN. 8 MAÇ & 8 SAYI: PPG vs TRUE SHOOTING %"
+    else:
+        chart_title = f"{selected_team}: TÜM OYUNCULAR — PPG vs TRUE SHOOTING %"
+
     fig.update_layout(
         title=dict(
-            text="MIN. 8 MAÇ & 5 SAYI: PPG vs TRUE SHOOTING %",
+            text=chart_title,
             x=0.5,
             y=0.965,
             font=dict(size=22, color="#f6d58a", family=BOLD_FONT)
@@ -475,7 +484,7 @@ with right:
     if st.session_state.compare_players:
         st.subheader("⚔️ Oyuncu Karşılaştırma")
 
-        compare_df = df[df["Player"].isin(st.session_state.compare_players)][[
+        compare_df = active_df[active_df["Player"].isin(st.session_state.compare_players)][[
             "Player", "Team", "GP", "MPG", "PPG", "TS%",
             "FGA", "FTA", "FG%", "3P%", "FT%"
         ]].sort_values("PPG", ascending=False)
@@ -491,7 +500,7 @@ with right:
 
     st.subheader("Oyuncu Tablosu")
 
-    table_df = df[[
+    table_df = active_df[[
         "Player", "Team", "GP", "MPG", "PPG", "TS%",
         "FGA", "FTA", "FG%", "3P%", "FT%"
     ]].sort_values(["PPG", "TS%"], ascending=False)
