@@ -13,12 +13,16 @@ BOLD_FONT = "Arial Black, Arial, Helvetica, sans-serif"
 df = pd.read_csv("euroleague_merged_dashboard_data.csv")
 df.columns = df.columns.str.strip()
 
+df["Team"] = df["Team"].replace({
+    "LYV": "PAR"
+})
+
 numeric_cols = [
     "GP", "MPG", "PPG",
     "TS%", "eFG%", "AST%", "TOV%", "STL%", "BLK%",
     "USG%", "PPR", "PPS", "ORtg", "DRtg", "eDiff", "FIC", "PER",
     "FGM", "FGA", "FG%", "3PM", "3PA", "3P%",
-    "FTM", "FTA", "FT%", "RPG", "APG", "SPG", "BPG", "TOV"
+    "FTM", "FTA", "FT%", "RPG", "APG", "SPG", "BPG"
 ]
 
 for col in numeric_cols:
@@ -31,14 +35,17 @@ for col in ["TS%", "eFG%", "AST%", "TOV%", "USG%", "FG%", "3P%", "FT%"]:
 
 required_cols = [
     "Player", "Team", "GP", "MPG", "PPG",
-    "TS%", "USG%", "AST%", "TOV%", "ORtg", "DRtg", "PER"
+    "TS%", "USG%", "AST%", "TOV%", "ORtg", "DRtg", "PER", "APG"
 ]
+
+missing_cols = [col for col in required_cols if col not in df.columns]
+if missing_cols:
+    st.error(f"Eksik kolon var: {missing_cols}")
+    st.stop()
 
 df = df.dropna(subset=required_cols).copy()
 
 df = df[
-    (df["GP"] >= 8) &
-    (df["PPG"] >= 8) &
     (df["USG%"] > 0) &
     (df["TS%"] > 0) &
     (df["PER"] > 0)
@@ -220,7 +227,10 @@ with left:
     st.markdown('</div>', unsafe_allow_html=True)
 
     if selected_team == "Tüm Takımlar":
-        active_df = df_all_players.copy()
+        active_df = df_all_players[
+            (df_all_players["GP"] >= 8) &
+            (df_all_players["PPG"] >= 8)
+        ].copy()
     else:
         active_df = df_all_players[df_all_players["Team"] == selected_team].copy()
 
@@ -405,7 +415,7 @@ with right:
     if selected_team == "Tüm Takımlar":
         chart_title = "MIN. 8 MAÇ & 8 SAYI: USAGE % vs TRUE SHOOTING %"
     else:
-        chart_title = f"{selected_team}: MIN. 8 MAÇ & 8 SAYI — USAGE % vs TRUE SHOOTING %"
+        chart_title = f"{selected_team}: TÜM OYUNCULAR — USAGE % vs TRUE SHOOTING %"
 
     fig.update_layout(
         title=dict(
