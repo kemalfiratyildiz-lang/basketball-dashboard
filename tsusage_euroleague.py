@@ -1,8 +1,4 @@
 import streamlit as st
-
-st.title("EuroLeague Usage vs Efficiency Dashboard")
-st.write("Test çalışıyor")
-import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
@@ -26,13 +22,19 @@ for col in numeric_cols:
     if col in df.columns:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
-for col in ["TS%", "eFG%"]:
+for col in ["TS%", "eFG%", "AST%", "TOV%", "USG%"]:
     if col in df.columns:
         df[col] = df[col].apply(lambda x: x / 10 if pd.notna(x) and x > 100 else x)
 
 df = df.dropna(subset=[
     "Player", "Team", "TS%", "USG%", "AST%", "TOV%", "ORtg", "DRtg", "PER"
 ]).copy()
+
+df = df[
+    (df["USG%"] > 0) &
+    (df["TS%"] > 0) &
+    (df["PER"] > 0)
+].copy()
 
 df_all_players = df.copy()
 
@@ -44,8 +46,8 @@ st.markdown("""
 
 .stApp {
     background:
-        radial-gradient(circle at top left, rgba(80, 120, 255, 0.23), transparent 34%),
-        radial-gradient(circle at bottom right, rgba(255, 80, 120, 0.20), transparent 34%),
+        radial-gradient(circle at top left, rgba(80, 120, 255, 0.20), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(255, 80, 120, 0.18), transparent 34%),
         linear-gradient(135deg, #040711 0%, #101827 50%, #050505 100%);
 }
 
@@ -311,15 +313,12 @@ with right:
     fig = go.Figure()
 
     if not base_df.empty:
-        fig.add_trace(go.Scatter(
+        fig.add_trace(go.Scattergl(
             x=base_df["USG%"],
             y=base_df["TS%"],
-            mode="markers+text",
-            text=base_df["Player"],
-            textposition="top center",
-            textfont=dict(size=8, color="rgba(238,243,255,0.70)", family=FONT),
+            mode="markers",
             marker=dict(
-                size=base_df["PER"] * 1.25,
+                size=(base_df["PER"].clip(lower=5, upper=35) * 0.95),
                 color=base_df["AST%"],
                 colorscale=[
                     [0.0, "#394867"],
@@ -328,8 +327,8 @@ with right:
                     [1.0, "#ffb3c7"]
                 ],
                 showscale=True,
-                opacity=0.84,
-                line=dict(width=1.2, color="rgba(255,255,255,0.72)"),
+                opacity=0.82,
+                line=dict(width=1, color="rgba(255,255,255,0.55)"),
                 colorbar=dict(
                     title=dict(text="AST%", font=dict(size=15, color="#eef3ff", family=BOLD_FONT)),
                     tickfont=dict(size=13, color="#eef3ff", family=FONT),
@@ -339,20 +338,20 @@ with right:
                 )
             ),
             customdata=base_df[[
-                "Team", "PER", "AST%", "TOV%", "ORtg", "DRtg", "eFG%", "PPS"
+                "Player", "Team", "PER", "AST%", "TOV%", "ORtg", "DRtg", "eFG%", "PPS"
             ]],
             hovertemplate=
-                "<b>%{text}</b><br>" +
-                "Takım: %{customdata[0]}<br>" +
+                "<b>%{customdata[0]}</b><br>" +
+                "Takım: %{customdata[1]}<br>" +
                 "USG%: %{x:.1f}<br>" +
                 "TS%: %{y:.1f}<br>" +
-                "PER: %{customdata[1]:.1f}<br>" +
-                "AST%: %{customdata[2]:.1f}<br>" +
-                "TOV%: %{customdata[3]:.1f}<br>" +
-                "ORtg: %{customdata[4]:.1f}<br>" +
-                "DRtg: %{customdata[5]:.1f}<br>" +
-                "eFG%: %{customdata[6]:.1f}<br>" +
-                "PPS: %{customdata[7]:.1f}<extra></extra>",
+                "PER: %{customdata[2]:.1f}<br>" +
+                "AST%: %{customdata[3]:.1f}<br>" +
+                "TOV%: %{customdata[4]:.1f}<br>" +
+                "ORtg: %{customdata[5]:.1f}<br>" +
+                "DRtg: %{customdata[6]:.1f}<br>" +
+                "eFG%: %{customdata[7]:.1f}<br>" +
+                "PPS: %{customdata[8]:.1f}<extra></extra>",
             showlegend=False
         ))
 
@@ -365,26 +364,26 @@ with right:
             textposition="top center",
             textfont=dict(size=13, color="#ffb3c7", family=BOLD_FONT),
             marker=dict(
-                size=highlight_df["PER"] * 1.75,
+                size=highlight_df["PER"].clip(lower=5, upper=35) * 1.45,
                 color="#ffb3c7",
                 opacity=0.98,
                 line=dict(width=4, color="#ffe5ee")
             ),
             customdata=highlight_df[[
-                "Team", "PER", "AST%", "TOV%", "ORtg", "DRtg", "eFG%", "PPS"
+                "Player", "Team", "PER", "AST%", "TOV%", "ORtg", "DRtg", "eFG%", "PPS"
             ]],
             hovertemplate=
-                "<b>%{text}</b><br>" +
-                "Takım: %{customdata[0]}<br>" +
+                "<b>%{customdata[0]}</b><br>" +
+                "Takım: %{customdata[1]}<br>" +
                 "USG%: %{x:.1f}<br>" +
                 "TS%: %{y:.1f}<br>" +
-                "PER: %{customdata[1]:.1f}<br>" +
-                "AST%: %{customdata[2]:.1f}<br>" +
-                "TOV%: %{customdata[3]:.1f}<br>" +
-                "ORtg: %{customdata[4]:.1f}<br>" +
-                "DRtg: %{customdata[5]:.1f}<br>" +
-                "eFG%: %{customdata[6]:.1f}<br>" +
-                "PPS: %{customdata[7]:.1f}<extra></extra>",
+                "PER: %{customdata[2]:.1f}<br>" +
+                "AST%: %{customdata[3]:.1f}<br>" +
+                "TOV%: %{customdata[4]:.1f}<br>" +
+                "ORtg: %{customdata[5]:.1f}<br>" +
+                "DRtg: %{customdata[6]:.1f}<br>" +
+                "eFG%: %{customdata[7]:.1f}<br>" +
+                "PPS: %{customdata[8]:.1f}<extra></extra>",
             showlegend=False
         ))
 
@@ -453,7 +452,14 @@ with right:
     )
 
     st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={
+            "displayModeBar": False,
+            "responsive": True
+        }
+    )
     st.markdown('</div>', unsafe_allow_html=True)
 
     if st.session_state.compare_players:
