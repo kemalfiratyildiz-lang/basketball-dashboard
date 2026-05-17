@@ -10,47 +10,29 @@ st.set_page_config(
 FONT = "Arial, Helvetica, sans-serif"
 BOLD_FONT = "Arial Black, Arial, Helvetica, sans-serif"
 
-df = pd.read_csv("euroleague_stats.csv")
+df = pd.read_csv("euroleague_merged_dashboard_data.csv")
 df.columns = df.columns.str.strip()
 
-rename_map = {
-    "Games": "GP",
-    "G": "GP",
-    "PTS": "PPG",
-    "Points": "PPG",
-    "PPG": "PPG",
-    "USG": "USG%",
-    "Usage": "USG%",
-    "Usage%": "USG%",
-    "TS": "TS%",
-    "True Shooting": "TS%",
-}
-
-df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
-
 numeric_cols = [
-    "GP", "PPG", "TS%", "eFG%", "AST%", "TOV%", "STL%", "BLK%",
-    "USG%", "PPR", "PPS", "ORtg", "DRtg", "eDiff", "FIC", "PER"
+    "GP", "MPG", "PPG",
+    "TS%", "eFG%", "AST%", "TOV%", "STL%", "BLK%",
+    "USG%", "PPR", "PPS", "ORtg", "DRtg", "eDiff", "FIC", "PER",
+    "FGM", "FGA", "FG%", "3PM", "3PA", "3P%",
+    "FTM", "FTA", "FT%", "RPG", "APG", "SPG", "BPG", "TOV"
 ]
 
 for col in numeric_cols:
     if col in df.columns:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
-for col in ["TS%", "eFG%", "AST%", "TOV%", "USG%"]:
+for col in ["TS%", "eFG%", "AST%", "TOV%", "USG%", "FG%", "3P%", "FT%"]:
     if col in df.columns:
         df[col] = df[col].apply(lambda x: x / 10 if pd.notna(x) and x > 100 else x)
 
 required_cols = [
-    "Player", "Team", "GP", "PPG",
+    "Player", "Team", "GP", "MPG", "PPG",
     "TS%", "USG%", "AST%", "TOV%", "ORtg", "DRtg", "PER"
 ]
-
-missing_cols = [col for col in required_cols if col not in df.columns]
-
-if missing_cols:
-    st.error(f"Eksik kolon var: {missing_cols}")
-    st.stop()
 
 df = df.dropna(subset=required_cols).copy()
 
@@ -367,20 +349,22 @@ with right:
                 )
             ),
             customdata=base_df[[
-                "Team", "GP", "PPG", "PER", "AST%", "TOV%", "ORtg", "DRtg"
+                "Team", "GP", "MPG", "PPG", "PER", "AST%", "TOV%", "ORtg", "DRtg", "APG"
             ]],
             hovertemplate=
                 "<b>%{text}</b><br>" +
                 "Takım: %{customdata[0]}<br>" +
                 "Maç: %{customdata[1]:.0f}<br>" +
-                "Sayı: %{customdata[2]:.1f}<br>" +
+                "Dakika: %{customdata[2]:.1f}<br>" +
+                "Sayı: %{customdata[3]:.1f}<br>" +
                 "USG%: %{x:.1f}<br>" +
                 "TS%: %{y:.1f}<br>" +
-                "PER: %{customdata[3]:.1f}<br>" +
-                "AST%: %{customdata[4]:.1f}<br>" +
-                "TOV%: %{customdata[5]:.1f}<br>" +
-                "ORtg: %{customdata[6]:.1f}<br>" +
-                "DRtg: %{customdata[7]:.1f}<extra></extra>",
+                "PER: %{customdata[4]:.1f}<br>" +
+                "AST%: %{customdata[5]:.1f}<br>" +
+                "TOV%: %{customdata[6]:.1f}<br>" +
+                "ORtg: %{customdata[7]:.1f}<br>" +
+                "DRtg: %{customdata[8]:.1f}<br>" +
+                "APG: %{customdata[9]:.1f}<extra></extra>",
             showlegend=False
         ))
 
@@ -399,20 +383,22 @@ with right:
                 line=dict(width=4, color="#ffe5ee")
             ),
             customdata=highlight_df[[
-                "Team", "GP", "PPG", "PER", "AST%", "TOV%", "ORtg", "DRtg"
+                "Team", "GP", "MPG", "PPG", "PER", "AST%", "TOV%", "ORtg", "DRtg", "APG"
             ]],
             hovertemplate=
                 "<b>%{text}</b><br>" +
                 "Takım: %{customdata[0]}<br>" +
                 "Maç: %{customdata[1]:.0f}<br>" +
-                "Sayı: %{customdata[2]:.1f}<br>" +
+                "Dakika: %{customdata[2]:.1f}<br>" +
+                "Sayı: %{customdata[3]:.1f}<br>" +
                 "USG%: %{x:.1f}<br>" +
                 "TS%: %{y:.1f}<br>" +
-                "PER: %{customdata[3]:.1f}<br>" +
-                "AST%: %{customdata[4]:.1f}<br>" +
-                "TOV%: %{customdata[5]:.1f}<br>" +
-                "ORtg: %{customdata[6]:.1f}<br>" +
-                "DRtg: %{customdata[7]:.1f}<extra></extra>",
+                "PER: %{customdata[4]:.1f}<br>" +
+                "AST%: %{customdata[5]:.1f}<br>" +
+                "TOV%: %{customdata[6]:.1f}<br>" +
+                "ORtg: %{customdata[7]:.1f}<br>" +
+                "DRtg: %{customdata[8]:.1f}<br>" +
+                "APG: %{customdata[9]:.1f}<extra></extra>",
             showlegend=False
         ))
 
@@ -440,7 +426,6 @@ with right:
             ),
             tickfont=dict(size=16, color="#eef3ff", family=BOLD_FONT),
             gridcolor="rgba(255,255,255,0.10)",
-            gridwidth=1,
             zeroline=False,
             linecolor="rgba(255,255,255,0.42)",
             linewidth=2,
@@ -454,7 +439,6 @@ with right:
             ),
             tickfont=dict(size=16, color="#eef3ff", family=BOLD_FONT),
             gridcolor="rgba(255,255,255,0.10)",
-            gridwidth=1,
             zeroline=False,
             linecolor="rgba(255,255,255,0.42)",
             linewidth=2,
@@ -495,11 +479,11 @@ with right:
         st.subheader("⚔️ Oyuncu Karşılaştırma")
 
         compare_df = active_df[active_df["Player"].isin(st.session_state.compare_players)][[
-            "Player", "Team", "GP", "PPG", "USG%", "TS%", "AST%", "TOV%",
-            "PER", "ORtg", "DRtg"
+            "Player", "Team", "GP", "MPG", "PPG", "USG%", "TS%", "AST%", "TOV%",
+            "PER", "ORtg", "DRtg", "APG"
         ]].sort_values("USG%", ascending=False)
 
-        for col in ["GP", "PPG", "USG%", "TS%", "AST%", "TOV%", "PER", "ORtg", "DRtg"]:
+        for col in ["GP", "MPG", "PPG", "USG%", "TS%", "AST%", "TOV%", "PER", "ORtg", "DRtg", "APG"]:
             compare_df[col] = compare_df[col].round(1)
 
         st.dataframe(
@@ -511,11 +495,11 @@ with right:
     st.subheader("Oyuncu Tablosu")
 
     table_df = active_df[[
-        "Player", "Team", "GP", "PPG", "USG%", "TS%", "AST%", "TOV%",
-        "PER", "ORtg", "DRtg"
+        "Player", "Team", "GP", "MPG", "PPG", "USG%", "TS%", "AST%", "TOV%",
+        "PER", "ORtg", "DRtg", "APG"
     ]].sort_values(["USG%", "TS%"], ascending=False)
 
-    for col in ["GP", "PPG", "USG%", "TS%", "AST%", "TOV%", "PER", "ORtg", "DRtg"]:
+    for col in ["GP", "MPG", "PPG", "USG%", "TS%", "AST%", "TOV%", "PER", "ORtg", "DRtg", "APG"]:
         table_df[col] = table_df[col].round(1)
 
     st.dataframe(
