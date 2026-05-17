@@ -29,7 +29,7 @@ df["Team"] = df["Team"].replace(team_replace)
 numeric_cols = [
     "GP", "MPG", "PPG", "FGM", "FGA", "FG%",
     "3PM", "3PA", "3P%", "FTM", "FTA", "FT%",
-    "RPG", "APG", "TOV"
+    "RPG", "APG", "SPG", "BPG", "TOV"
 ]
 
 for col in numeric_cols:
@@ -42,17 +42,33 @@ for col in ["FG%", "3P%", "FT%"]:
             lambda x: x / 10 if pd.notna(x) and x > 100 else x
         )
 
+for col in ["SPG", "BPG"]:
+    if col not in df.columns:
+        df[col] = 0
+
 df["TS%"] = (
     df["PPG"] /
     (2 * (df["FGA"] + 0.44 * df["FTA"]))
 ) * 100
 
+df["PER"] = (
+    df["PPG"] +
+    (df["RPG"] * 1.2) +
+    (df["APG"] * 1.5) +
+    (df["SPG"] * 2) +
+    (df["BPG"] * 2) -
+    (df["TOV"] * 1.5)
+)
+
 df = df.dropna(subset=[
     "Player", "Team", "GP", "MPG",
-    "PPG", "FGA", "FTA", "TS%"
+    "PPG", "FGA", "FTA", "TS%", "PER"
 ])
 
-df = df[df["FGA"] > 0].copy()
+df = df[
+    (df["FGA"] > 0) &
+    (df["PER"] > 0)
+].copy()
 
 df_all_players = df.copy()
 
@@ -344,7 +360,7 @@ with right:
             textposition="top center",
             textfont=dict(size=8, color="rgba(247,234,210,0.70)", family=FONT),
             marker=dict(
-                size=base_df["MPG"] * 1.05,
+                size=base_df["PER"].clip(lower=5, upper=35) * 1.6,
                 color=base_df["TS%"],
                 colorscale=[
                     [0.0, "#5b4b8a"],
@@ -364,7 +380,7 @@ with right:
                 )
             ),
             customdata=base_df[[
-                "Team", "GP", "MPG", "FGA", "FTA", "FG%", "3P%", "FT%"
+                "Team", "GP", "MPG", "PER", "FGA", "FTA", "FG%", "3P%", "FT%"
             ]],
             hovertemplate=
                 "<b>%{text}</b><br>" +
@@ -372,12 +388,13 @@ with right:
                 "Maç: %{customdata[1]:.0f}<br>" +
                 "Dakika: %{customdata[2]:.1f}<br>" +
                 "PPG: %{x:.1f}<br>" +
+                "PER: %{customdata[3]:.1f}<br>" +
                 "TS%: %{y:.1f}<br>" +
-                "FGA: %{customdata[3]:.1f}<br>" +
-                "FTA: %{customdata[4]:.1f}<br>" +
-                "FG%: %{customdata[5]:.1f}%<br>" +
-                "3P%: %{customdata[6]:.1f}%<br>" +
-                "FT%: %{customdata[7]:.1f}%<extra></extra>",
+                "FGA: %{customdata[4]:.1f}<br>" +
+                "FTA: %{customdata[5]:.1f}<br>" +
+                "FG%: %{customdata[6]:.1f}%<br>" +
+                "3P%: %{customdata[7]:.1f}%<br>" +
+                "FT%: %{customdata[8]:.1f}%<extra></extra>",
             showlegend=False
         ))
 
@@ -390,13 +407,13 @@ with right:
             textposition="top center",
             textfont=dict(size=13, color="#ffcf63", family=BOLD_FONT),
             marker=dict(
-                size=highlight_df["MPG"] * 1.7,
+                size=highlight_df["PER"].clip(lower=5, upper=35) * 2.2,
                 color="#ffcf63",
                 opacity=0.98,
                 line=dict(width=4, color="#fff1bf")
             ),
             customdata=highlight_df[[
-                "Team", "GP", "MPG", "FGA", "FTA", "FG%", "3P%", "FT%"
+                "Team", "GP", "MPG", "PER", "FGA", "FTA", "FG%", "3P%", "FT%"
             ]],
             hovertemplate=
                 "<b>%{text}</b><br>" +
@@ -404,12 +421,13 @@ with right:
                 "Maç: %{customdata[1]:.0f}<br>" +
                 "Dakika: %{customdata[2]:.1f}<br>" +
                 "PPG: %{x:.1f}<br>" +
+                "PER: %{customdata[3]:.1f}<br>" +
                 "TS%: %{y:.1f}<br>" +
-                "FGA: %{customdata[3]:.1f}<br>" +
-                "FTA: %{customdata[4]:.1f}<br>" +
-                "FG%: %{customdata[5]:.1f}%<br>" +
-                "3P%: %{customdata[6]:.1f}%<br>" +
-                "FT%: %{customdata[7]:.1f}%<extra></extra>",
+                "FGA: %{customdata[4]:.1f}<br>" +
+                "FTA: %{customdata[5]:.1f}<br>" +
+                "FG%: %{customdata[6]:.1f}%<br>" +
+                "3P%: %{customdata[7]:.1f}%<br>" +
+                "FT%: %{customdata[8]:.1f}%<extra></extra>",
             showlegend=False
         ))
 
@@ -485,11 +503,11 @@ with right:
         st.subheader("⚔️ Oyuncu Karşılaştırma")
 
         compare_df = active_df[active_df["Player"].isin(st.session_state.compare_players)][[
-            "Player", "Team", "GP", "MPG", "PPG", "TS%",
+            "Player", "Team", "GP", "MPG", "PPG", "TS%", "PER",
             "FGA", "FTA", "FG%", "3P%", "FT%"
         ]].sort_values("PPG", ascending=False)
 
-        for col in ["PPG", "MPG", "TS%", "FG%", "3P%", "FT%", "FGA", "FTA"]:
+        for col in ["PPG", "MPG", "TS%", "PER", "FG%", "3P%", "FT%", "FGA", "FTA"]:
             compare_df[col] = compare_df[col].round(1)
 
         st.dataframe(
@@ -501,11 +519,11 @@ with right:
     st.subheader("Oyuncu Tablosu")
 
     table_df = active_df[[
-        "Player", "Team", "GP", "MPG", "PPG", "TS%",
+        "Player", "Team", "GP", "MPG", "PPG", "TS%", "PER",
         "FGA", "FTA", "FG%", "3P%", "FT%"
     ]].sort_values(["PPG", "TS%"], ascending=False)
 
-    for col in ["PPG", "MPG", "TS%", "FG%", "3P%", "FT%", "FGA", "FTA"]:
+    for col in ["PPG", "MPG", "TS%", "PER", "FG%", "3P%", "FT%", "FGA", "FTA"]:
         table_df[col] = table_df[col].round(1)
 
     st.dataframe(
