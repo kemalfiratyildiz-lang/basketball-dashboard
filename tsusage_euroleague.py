@@ -13,8 +13,23 @@ BOLD_FONT = "Arial Black, Arial, Helvetica, sans-serif"
 df = pd.read_csv("euroleague_stats.csv")
 df.columns = df.columns.str.strip()
 
+rename_map = {
+    "Games": "GP",
+    "G": "GP",
+    "PTS": "PPG",
+    "Points": "PPG",
+    "PPG": "PPG",
+    "USG": "USG%",
+    "Usage": "USG%",
+    "Usage%": "USG%",
+    "TS": "TS%",
+    "True Shooting": "TS%",
+}
+
+df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
+
 numeric_cols = [
-    "TS%", "eFG%", "AST%", "TOV%", "STL%", "BLK%",
+    "GP", "PPG", "TS%", "eFG%", "AST%", "TOV%", "STL%", "BLK%",
     "USG%", "PPR", "PPS", "ORtg", "DRtg", "eDiff", "FIC", "PER"
 ]
 
@@ -26,11 +41,22 @@ for col in ["TS%", "eFG%", "AST%", "TOV%", "USG%"]:
     if col in df.columns:
         df[col] = df[col].apply(lambda x: x / 10 if pd.notna(x) and x > 100 else x)
 
-df = df.dropna(subset=[
-    "Player", "Team", "TS%", "USG%", "AST%", "TOV%", "ORtg", "DRtg", "PER"
-]).copy()
+required_cols = [
+    "Player", "Team", "GP", "PPG",
+    "TS%", "USG%", "AST%", "TOV%", "ORtg", "DRtg", "PER"
+]
+
+missing_cols = [col for col in required_cols if col not in df.columns]
+
+if missing_cols:
+    st.error(f"Eksik kolon var: {missing_cols}")
+    st.stop()
+
+df = df.dropna(subset=required_cols).copy()
 
 df = df[
+    (df["GP"] >= 8) &
+    (df["PPG"] >= 8) &
     (df["USG%"] > 0) &
     (df["TS%"] > 0) &
     (df["PER"] > 0)
@@ -313,12 +339,15 @@ with right:
     fig = go.Figure()
 
     if not base_df.empty:
-        fig.add_trace(go.Scattergl(
+        fig.add_trace(go.Scatter(
             x=base_df["USG%"],
             y=base_df["TS%"],
-            mode="markers",
+            mode="markers+text",
+            text=base_df["Player"],
+            textposition="top center",
+            textfont=dict(size=8, color="rgba(238,243,255,0.68)", family=FONT),
             marker=dict(
-                size=(base_df["PER"].clip(lower=5, upper=35) * 0.95),
+                size=base_df["PER"].clip(lower=5, upper=35) * 0.95,
                 color=base_df["AST%"],
                 colorscale=[
                     [0.0, "#394867"],
@@ -338,20 +367,20 @@ with right:
                 )
             ),
             customdata=base_df[[
-                "Player", "Team", "PER", "AST%", "TOV%", "ORtg", "DRtg", "eFG%", "PPS"
+                "Team", "GP", "PPG", "PER", "AST%", "TOV%", "ORtg", "DRtg"
             ]],
             hovertemplate=
-                "<b>%{customdata[0]}</b><br>" +
-                "Takım: %{customdata[1]}<br>" +
+                "<b>%{text}</b><br>" +
+                "Takım: %{customdata[0]}<br>" +
+                "Maç: %{customdata[1]:.0f}<br>" +
+                "Sayı: %{customdata[2]:.1f}<br>" +
                 "USG%: %{x:.1f}<br>" +
                 "TS%: %{y:.1f}<br>" +
-                "PER: %{customdata[2]:.1f}<br>" +
-                "AST%: %{customdata[3]:.1f}<br>" +
-                "TOV%: %{customdata[4]:.1f}<br>" +
-                "ORtg: %{customdata[5]:.1f}<br>" +
-                "DRtg: %{customdata[6]:.1f}<br>" +
-                "eFG%: %{customdata[7]:.1f}<br>" +
-                "PPS: %{customdata[8]:.1f}<extra></extra>",
+                "PER: %{customdata[3]:.1f}<br>" +
+                "AST%: %{customdata[4]:.1f}<br>" +
+                "TOV%: %{customdata[5]:.1f}<br>" +
+                "ORtg: %{customdata[6]:.1f}<br>" +
+                "DRtg: %{customdata[7]:.1f}<extra></extra>",
             showlegend=False
         ))
 
@@ -362,35 +391,35 @@ with right:
             mode="markers+text",
             text=highlight_df["Player"],
             textposition="top center",
-            textfont=dict(size=13, color="#ffb3c7", family=BOLD_FONT),
+            textfont=dict(size=14, color="#ffb3c7", family=BOLD_FONT),
             marker=dict(
-                size=highlight_df["PER"].clip(lower=5, upper=35) * 1.45,
+                size=highlight_df["PER"].clip(lower=5, upper=35) * 1.5,
                 color="#ffb3c7",
                 opacity=0.98,
                 line=dict(width=4, color="#ffe5ee")
             ),
             customdata=highlight_df[[
-                "Player", "Team", "PER", "AST%", "TOV%", "ORtg", "DRtg", "eFG%", "PPS"
+                "Team", "GP", "PPG", "PER", "AST%", "TOV%", "ORtg", "DRtg"
             ]],
             hovertemplate=
-                "<b>%{customdata[0]}</b><br>" +
-                "Takım: %{customdata[1]}<br>" +
+                "<b>%{text}</b><br>" +
+                "Takım: %{customdata[0]}<br>" +
+                "Maç: %{customdata[1]:.0f}<br>" +
+                "Sayı: %{customdata[2]:.1f}<br>" +
                 "USG%: %{x:.1f}<br>" +
                 "TS%: %{y:.1f}<br>" +
-                "PER: %{customdata[2]:.1f}<br>" +
-                "AST%: %{customdata[3]:.1f}<br>" +
-                "TOV%: %{customdata[4]:.1f}<br>" +
-                "ORtg: %{customdata[5]:.1f}<br>" +
-                "DRtg: %{customdata[6]:.1f}<br>" +
-                "eFG%: %{customdata[7]:.1f}<br>" +
-                "PPS: %{customdata[8]:.1f}<extra></extra>",
+                "PER: %{customdata[3]:.1f}<br>" +
+                "AST%: %{customdata[4]:.1f}<br>" +
+                "TOV%: %{customdata[5]:.1f}<br>" +
+                "ORtg: %{customdata[6]:.1f}<br>" +
+                "DRtg: %{customdata[7]:.1f}<extra></extra>",
             showlegend=False
         ))
 
     if selected_team == "Tüm Takımlar":
-        chart_title = "EUROLEAGUE: USAGE % vs TRUE SHOOTING %"
+        chart_title = "MIN. 8 MAÇ & 8 SAYI: USAGE % vs TRUE SHOOTING %"
     else:
-        chart_title = f"{selected_team}: USAGE % vs TRUE SHOOTING %"
+        chart_title = f"{selected_team}: MIN. 8 MAÇ & 8 SAYI — USAGE % vs TRUE SHOOTING %"
 
     fig.update_layout(
         title=dict(
@@ -466,11 +495,11 @@ with right:
         st.subheader("⚔️ Oyuncu Karşılaştırma")
 
         compare_df = active_df[active_df["Player"].isin(st.session_state.compare_players)][[
-            "Player", "Team", "USG%", "TS%", "AST%", "TOV%",
-            "PER", "ORtg", "DRtg", "eFG%", "PPS"
+            "Player", "Team", "GP", "PPG", "USG%", "TS%", "AST%", "TOV%",
+            "PER", "ORtg", "DRtg"
         ]].sort_values("USG%", ascending=False)
 
-        for col in ["USG%", "TS%", "AST%", "TOV%", "PER", "ORtg", "DRtg", "eFG%", "PPS"]:
+        for col in ["GP", "PPG", "USG%", "TS%", "AST%", "TOV%", "PER", "ORtg", "DRtg"]:
             compare_df[col] = compare_df[col].round(1)
 
         st.dataframe(
@@ -482,11 +511,11 @@ with right:
     st.subheader("Oyuncu Tablosu")
 
     table_df = active_df[[
-        "Player", "Team", "USG%", "TS%", "AST%", "TOV%",
-        "PER", "ORtg", "DRtg", "eFG%", "PPS"
+        "Player", "Team", "GP", "PPG", "USG%", "TS%", "AST%", "TOV%",
+        "PER", "ORtg", "DRtg"
     ]].sort_values(["USG%", "TS%"], ascending=False)
 
-    for col in ["USG%", "TS%", "AST%", "TOV%", "PER", "ORtg", "DRtg", "eFG%", "PPS"]:
+    for col in ["GP", "PPG", "USG%", "TS%", "AST%", "TOV%", "PER", "ORtg", "DRtg"]:
         table_df[col] = table_df[col].round(1)
 
     st.dataframe(
