@@ -418,17 +418,23 @@ with right:
         chart_title = f"{selected_team}: TÜM OYUNCULAR — USAGE % vs TRUE SHOOTING %"
 
     fig.update_layout(
-        title=dict(
-            text=chart_title,
-            x=0.5,
-            y=0.965,
-            font=dict(size=22, color="#dce8ff", family=BOLD_FONT)
-        ),
-        height=760,
-        plot_bgcolor="rgba(255,255,255,0.035)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#eef3ff", family=FONT),
-        showlegend=False,
+    title=dict(
+        text=chart_title,
+        x=0.5,
+        y=0.97,
+        xanchor="center",
+        font=dict(
+            size=18,
+            color="#dce8ff",
+            family=BOLD_FONT
+        )
+    ),
+    height=760,
+    plot_bgcolor="rgba(255,255,255,0.035)",
+    paper_bgcolor="rgba(0,0,0,0)",
+    font=dict(color="#eef3ff", family=FONT),
+    showlegend=False,
+        ,
         xaxis=dict(
             title=dict(
                 text="Usage Rate (USG%)",
@@ -455,7 +461,7 @@ with right:
             mirror=True,
             automargin=True
         ),
-        margin=dict(l=110, r=130, t=100, b=90)
+        margin=dict(l=110, r=130, t=125, b=90)
     )
 
     fig.update_xaxes(
