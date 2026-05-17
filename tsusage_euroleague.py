@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import unicodedata
 
 st.set_page_config(
     page_title="EuroLeague Usage vs Efficiency Dashboard",
@@ -13,9 +14,43 @@ BOLD_FONT = "Arial Black, Arial, Helvetica, sans-serif"
 df = pd.read_csv("euroleague_merged_dashboard_data.csv")
 df.columns = df.columns.str.strip()
 
-df["Team"] = df["Team"].replace({
-    "LYV": "PARI"
-})
+df["Player"] = df["Player"].astype(str).str.strip()
+df["Team"] = df["Team"].astype(str).str.strip()
+
+def clean_name(name):
+    name = str(name).strip().lower()
+    name = unicodedata.normalize("NFKD", name)
+    name = "".join([c for c in name if not unicodedata.combining(c)])
+    name = name.replace(".", "")
+    name = name.replace("-", " ")
+    name = " ".join(name.split())
+    return name
+
+paris_players = {
+    "tj shorts",
+    "tj shorts ii",
+    "nadir hifi",
+    "tyson ward",
+    "collin malcolm",
+    "mikael jantunen",
+    "daulton hommes",
+    "maodo lo",
+    "yakuba ouattara",
+    "kevarrius hayes",
+    "sebastian herrera",
+    "bandja sy",
+    "leopold cavaliere",
+    "gavin schilling",
+    "enzo shahrvin",
+    "enzo andre shahrvin",
+    "hugo benitez",
+    "justin simon"
+}
+
+df["PLAYER_CLEAN"] = df["Player"].apply(clean_name)
+
+df.loc[df["Team"] == "LYV", "Team"] = "PARI"
+df.loc[df["PLAYER_CLEAN"].isin(paris_players), "Team"] = "PARI"
 
 numeric_cols = [
     "GP", "MPG", "PPG",
@@ -39,6 +74,7 @@ required_cols = [
 ]
 
 missing_cols = [col for col in required_cols if col not in df.columns]
+
 if missing_cols:
     st.error(f"Eksik kolon var: {missing_cols}")
     st.stop()
