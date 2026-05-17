@@ -66,18 +66,21 @@ st.markdown("""
 }
 
 .stApp {
-    background: linear-gradient(135deg, #f8fbff 0%, #dbeafe 55%, #f1f5f9 100%);
+    background:
+        radial-gradient(circle at top left, rgba(255, 190, 95, 0.22), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(126, 87, 194, 0.22), transparent 34%),
+        linear-gradient(135deg, #070504 0%, #17110c 48%, #050505 100%);
 }
 
 .block-container {
-    padding-top: 1.4rem;
+    padding-top: 1.2rem;
     padding-left: 2rem;
     padding-right: 2rem;
     max-width: 100%;
 }
 
 h1, h2, h3, p, label, div, span {
-    color: #0f172a !important;
+    color: #f7ead2 !important;
 }
 
 h1, h2, h3,
@@ -88,23 +91,27 @@ h1, h2, h3,
 }
 
 h1 {
-    font-size: 2rem !important;
+    font-size: 2.35rem !important;
     font-weight: 900 !important;
+    letter-spacing: -1.4px;
+    color: #f6d58a !important;
 }
 
 .info-card {
-    background: rgba(255,255,255,0.84);
-    border: 1px solid #bfdbfe;
-    border-radius: 22px;
+    background: rgba(255,255,255,0.075);
+    border: 1px solid rgba(255, 218, 158, 0.20);
+    border-radius: 24px;
     padding: 18px;
     margin-bottom: 16px;
-    box-shadow: 0 18px 40px rgba(15,23,42,0.08);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.36);
+    backdrop-filter: blur(12px);
 }
 
 .card-title {
-    font-size: 19px;
+    font-size: 18px;
     font-weight: 900;
     margin-bottom: 12px;
+    color: #ffd47a !important;
 }
 
 .selected-pill {
@@ -112,7 +119,9 @@ h1 {
     margin-top: 10px;
     padding: 8px 13px;
     border-radius: 999px;
-    background: #dbeafe;
+    background: rgba(255, 207, 99, 0.16);
+    border: 1px solid rgba(255, 207, 99, 0.32);
+    color: #ffcf63 !important;
     font-weight: 900;
     line-height: 1.5;
 }
@@ -121,21 +130,23 @@ h1 {
     font-weight: 900;
     margin-top: 14px;
     margin-bottom: 8px;
+    color: #dbc6a0 !important;
 }
 
 .chart-card {
-    background: white;
-    border: 1px solid #bfdbfe;
-    border-radius: 28px;
+    background: rgba(255,255,255,0.075);
+    border: 1px solid rgba(255, 218, 158, 0.22);
+    border-radius: 30px;
     padding: 16px;
-    box-shadow: 0 24px 60px rgba(15,23,42,0.12);
+    box-shadow: 0 30px 85px rgba(0,0,0,0.42);
     overflow: hidden;
+    backdrop-filter: blur(12px);
 }
 
 div[data-testid="stTextInput"] input {
-    background: white !important;
-    color: #0f172a !important;
-    border: 2px solid #93c5fd !important;
+    background: rgba(255,255,255,0.10) !important;
+    color: #f7ead2 !important;
+    border: 1px solid rgba(255, 218, 158, 0.30) !important;
     border-radius: 15px !important;
     min-height: 46px !important;
     font-size: 15px !important;
@@ -143,14 +154,14 @@ div[data-testid="stTextInput"] input {
 }
 
 div[data-testid="stTextInput"] input::placeholder {
-    color: #64748b !important;
+    color: #a99b83 !important;
     opacity: 1 !important;
 }
 
 div[data-testid="stButton"] button {
-    background: white !important;
-    color: #0f172a !important;
-    border: 1px solid #bfdbfe !important;
+    background: rgba(255,255,255,0.10) !important;
+    color: #f7ead2 !important;
+    border: 1px solid rgba(255, 218, 158, 0.26) !important;
     border-radius: 999px !important;
     padding: 8px 13px !important;
     font-weight: 900 !important;
@@ -158,11 +169,22 @@ div[data-testid="stButton"] button {
 }
 
 div[data-testid="stButton"] button:hover {
-    background: #dbeafe !important;
+    background: rgba(255, 207, 99, 0.18) !important;
+    color: #ffcf63 !important;
 }
 
 div[data-testid="stCheckbox"] label {
     font-weight: 900 !important;
+}
+
+div[data-testid="stRadio"] label {
+    color: #f7ead2 !important;
+    font-weight: 800 !important;
+}
+
+[data-testid="stDataFrame"] {
+    background: rgba(255,255,255,0.08) !important;
+    border-radius: 18px !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -316,19 +338,23 @@ with right:
             mode="markers+text",
             text=base_df["Player"],
             textposition="top center",
-            textfont=dict(size=8, color="#334155", family=FONT),
+            textfont=dict(size=8, color="rgba(247,234,210,0.70)", family=FONT),
             marker=dict(
                 size=base_df["MPG"] * 1.05,
                 color=base_df["TS%"],
-                colorscale="Viridis",
+                colorscale=[
+                    [0.0, "#5b4b8a"],
+                    [0.35, "#8b7cff"],
+                    [0.65, "#f0b35a"],
+                    [1.0, "#ffcf63"]
+                ],
                 showscale=True,
-                opacity=0.80,
-                line=dict(width=1.3, color="white"),
+                opacity=0.84,
+                line=dict(width=1.2, color="rgba(255,255,255,0.72)"),
                 colorbar=dict(
-                    title=dict(text="TS%", font=dict(size=15, color="#0f172a", family=BOLD_FONT)),
-                    tickfont=dict(size=13, color="#0f172a", family=FONT),
-                    outlinewidth=1,
-                    outlinecolor="#334155",
+                    title=dict(text="TS%", font=dict(size=15, color="#f7ead2", family=BOLD_FONT)),
+                    tickfont=dict(size=13, color="#f7ead2", family=FONT),
+                    outlinewidth=0,
                     thickness=25,
                     len=0.78
                 )
@@ -358,12 +384,12 @@ with right:
             mode="markers+text",
             text=highlight_df["Player"],
             textposition="top center",
-            textfont=dict(size=13, color="#dc2626", family=BOLD_FONT),
+            textfont=dict(size=13, color="#ffcf63", family=BOLD_FONT),
             marker=dict(
                 size=highlight_df["MPG"] * 1.7,
-                color="#ef4444",
-                opacity=0.96,
-                line=dict(width=4, color="#7f1d1d")
+                color="#ffcf63",
+                opacity=0.98,
+                line=dict(width=4, color="#fff1bf")
             ),
             customdata=highlight_df[[
                 "Team", "GP", "MPG", "FGA", "FTA", "FG%", "3P%", "FT%"
@@ -385,26 +411,26 @@ with right:
 
     fig.update_layout(
         title=dict(
-            text="Min. 8 Maç & 5 Sayı: PPG vs True Shooting %",
+            text="MIN. 8 MAÇ & 5 SAYI: PPG vs TRUE SHOOTING %",
             x=0.5,
             y=0.965,
-            font=dict(size=22, color="#0f172a", family=BOLD_FONT)
+            font=dict(size=22, color="#f6d58a", family=BOLD_FONT)
         ),
         height=760,
-        plot_bgcolor="#f8fafc",
-        paper_bgcolor="white",
-        font=dict(color="#0f172a", family=FONT),
+        plot_bgcolor="rgba(255,255,255,0.035)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#f7ead2", family=FONT),
         showlegend=False,
         xaxis=dict(
             title=dict(
                 text="Sayı Ortalaması (PPG)",
-                font=dict(size=20, color="#0f172a", family=BOLD_FONT)
+                font=dict(size=20, color="#f7ead2", family=BOLD_FONT)
             ),
-            tickfont=dict(size=16, color="#0f172a", family=BOLD_FONT),
-            gridcolor="rgba(37,99,235,0.18)",
+            tickfont=dict(size=16, color="#f7ead2", family=BOLD_FONT),
+            gridcolor="rgba(255,255,255,0.10)",
             gridwidth=1,
             zeroline=False,
-            linecolor="rgba(15,23,42,0.45)",
+            linecolor="rgba(255,255,255,0.42)",
             linewidth=2,
             mirror=True,
             automargin=True
@@ -412,13 +438,13 @@ with right:
         yaxis=dict(
             title=dict(
                 text="True Shooting % (TS%)",
-                font=dict(size=20, color="#0f172a", family=BOLD_FONT)
+                font=dict(size=20, color="#f7ead2", family=BOLD_FONT)
             ),
-            tickfont=dict(size=16, color="#0f172a", family=BOLD_FONT),
-            gridcolor="rgba(37,99,235,0.18)",
+            tickfont=dict(size=16, color="#f7ead2", family=BOLD_FONT),
+            gridcolor="rgba(255,255,255,0.10)",
             gridwidth=1,
             zeroline=False,
-            linecolor="rgba(15,23,42,0.45)",
+            linecolor="rgba(255,255,255,0.42)",
             linewidth=2,
             mirror=True,
             automargin=True
@@ -430,7 +456,7 @@ with right:
         showgrid=True,
         minor=dict(
             showgrid=True,
-            gridcolor="rgba(148,163,184,0.14)"
+            gridcolor="rgba(255,255,255,0.045)"
         )
     )
 
@@ -438,7 +464,7 @@ with right:
         showgrid=True,
         minor=dict(
             showgrid=True,
-            gridcolor="rgba(148,163,184,0.14)"
+            gridcolor="rgba(255,255,255,0.045)"
         )
     )
 
