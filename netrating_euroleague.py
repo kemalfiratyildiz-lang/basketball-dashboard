@@ -4,8 +4,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 import re
 
-st.set_page_config(page_title="EuroLeague Net Rating Dashboard", layout="wide")
-
+st.set_page_config(
+    page_title="EuroLeague Net Rating Dashboard",
+    layout="wide"
+)
 
 def clean_number(x):
     if pd.isna(x):
@@ -24,19 +26,34 @@ df["Team"] = df["Team"].astype(str).str.strip()
 df.loc[df["Team"] == "LYV", "Team"] = "ASV"
 
 paris_players = [
-    "NADIR HIFI", "JUSTIN ROBINSON", "JARED RHODEN", "LAMAR STEVENS",
-    "AMATH MBAYE", "AMATH M'BAYE", "SEBASTIAN HERRERA",
-    "ALLAN JULIEN DOKOSSI", "ALLAN JULIAN DOKOSSI", "DAULTON HOMMES",
-    "MOUHAMED FAYE", "DEREK WILLIS", "JEREMY MORGAN",
-    "ENZO ANDRE SHAHRVIN", "ENZO SHAHRVIN", "LEOPOLD CAVALIERE",
-    "YAKUBA OUATTARA", "JOEL AYAYI"
+    "NADIR HIFI",
+    "JUSTIN ROBINSON",
+    "JARED RHODEN",
+    "LAMAR STEVENS",
+    "AMATH MBAYE",
+    "AMATH M'BAYE",
+    "SEBASTIAN HERRERA",
+    "ALLAN JULIEN DOKOSSI",
+    "ALLAN JULIAN DOKOSSI",
+    "DAULTON HOMMES",
+    "MOUHAMED FAYE",
+    "DEREK WILLIS",
+    "JEREMY MORGAN",
+    "ENZO ANDRE SHAHRVIN",
+    "ENZO SHAHRVIN",
+    "LEOPOLD CAVALIERE",
+    "YAKUBA OUATTARA",
+    "JOEL AYAYI"
 ]
 
 df["Player_clean"] = df["Player"].str.upper().str.strip()
+
 df.loc[
-    (df["Team"] == "PAR") & (df["Player_clean"].isin(paris_players)),
+    (df["Team"] == "PAR") &
+    (df["Player_clean"].isin(paris_players)),
     "Team"
 ] = "PARI"
+
 df = df.drop(columns=["Player_clean"])
 
 off_col = "ORtg"
@@ -63,13 +80,31 @@ for c in [off_col, def_col, game_col, minute_col]:
 df["Net Rating"] = df[off_col] - df[def_col]
 
 df = df.dropna(
-    subset=["Player", "Team", off_col, def_col, minute_col, game_col, "Net Rating"]
+    subset=[
+        "Player",
+        "Team",
+        off_col,
+        def_col,
+        minute_col,
+        game_col,
+        "Net Rating"
+    ]
 )
 
-base_filtered = df[(df[game_col] >= 8) & (df[minute_col] >= 8)]
+df[off_col] = df[off_col].round(1)
+df[def_col] = df[def_col].round(1)
+df["Net Rating"] = df["Net Rating"].round(1)
+df[minute_col] = df[minute_col].round(1)
+df[game_col] = df[game_col].round(0)
+
+base_filtered = df[
+    (df[game_col] >= 8) &
+    (df[minute_col] >= 8)
+]
 
 st.markdown("""
 <style>
+
 .stApp {
     background:
         radial-gradient(circle at 15% 20%, rgba(37,99,235,0.45) 0%, transparent 22%),
@@ -172,6 +207,7 @@ h1, h2, h3, h4, p, label, span, div {
     padding: 14px;
     box-shadow: 0 0 24px rgba(37,99,235,0.10);
 }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -198,6 +234,7 @@ st.markdown(
     '<div class="main-title">EuroLeague Net Rating Impact Dashboard</div>',
     unsafe_allow_html=True
 )
+
 st.markdown(
     '<div class="sub-title">Oyuncuların ORtg, DRtg ve Net Rating üzerinden iki yönlü etkisi.</div>',
     unsafe_allow_html=True
@@ -269,15 +306,22 @@ fig = px.scatter(
     size=minute_col,
     text="Player",
     hover_name="Player",
-    hover_data={
-        "Team": True,
-        off_col: ":.1f",
-        def_col: ":.1f",
-        "Net Rating": ":.1f",
-        minute_col: ":.1f",
-        game_col: ":.0f"
-    },
+    custom_data=["Team", "Net Rating", minute_col, game_col],
     size_max=44,
+)
+
+fig.update_traces(
+    textposition="top center",
+    textfont=dict(size=10, color="white"),
+    marker=dict(line=dict(width=1, color="rgba(255,255,255,0.35)")),
+    hovertemplate=
+    "<b>%{hovertext}</b><br>" +
+    "Team: %{customdata[0]}<br>" +
+    "ORtg: %{x:.1f}<br>" +
+    "DRtg: %{y:.1f}<br>" +
+    "Net Rating: %{customdata[1]:+.1f}<br>" +
+    "Minutes: %{customdata[2]:.1f}<br>" +
+    "Games: %{customdata[3]:.0f}<extra></extra>"
 )
 
 fig.add_vline(
@@ -292,12 +336,6 @@ fig.add_hline(
     line_color="rgba(255,255,255,0.7)"
 )
 
-fig.update_traces(
-    textposition="top center",
-    textfont=dict(size=10, color="white"),
-    marker=dict(line=dict(width=1, color="rgba(255,255,255,0.35)"))
-)
-
 if selected_player != "All":
     hp = filtered[filtered["Player"] == selected_player]
 
@@ -305,16 +343,55 @@ if selected_player != "All":
         go.Scatter(
             x=hp[off_col],
             y=hp[def_col],
+            mode="markers",
+            marker=dict(
+                size=60,
+                color="rgba(0,0,0,0.92)",
+                line=dict(width=0)
+            ),
+            hoverinfo="skip",
+            showlegend=False
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=hp[off_col],
+            y=hp[def_col],
+            mode="markers",
+            marker=dict(
+                size=50,
+                color="rgba(250,204,21,0.28)",
+                line=dict(width=6, color="#facc15")
+            ),
+            hoverinfo="skip",
+            showlegend=False
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=hp[off_col],
+            y=hp[def_col],
             mode="markers+text",
             text=hp["Player"],
-            textposition="bottom center",
+            textposition="top center",
+            customdata=hp[["Team", "Net Rating", minute_col, game_col]],
             marker=dict(
-                size=30,
-                color="rgba(255,255,255,0)",
-                line=dict(width=5, color="#facc15")
+                size=28,
+                symbol="star",
+                color="#facc15",
+                line=dict(width=3, color="white")
             ),
-            name=f"Highlighted: {selected_player}",
-            hoverinfo="skip"
+            name=f"Selected: {selected_player}",
+            hovertemplate=
+            "<b>%{text}</b><br>" +
+            "Team: %{customdata[0]}<br>" +
+            "ORtg: %{x:.1f}<br>" +
+            "DRtg: %{y:.1f}<br>" +
+            "Net Rating: %{customdata[1]:+.1f}<br>" +
+            "Minutes: %{customdata[2]:.1f}<br>" +
+            "Games: %{customdata[3]:.0f}<extra></extra>"
         )
     )
 
@@ -342,7 +419,8 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
-st.caption("Sağ alt bölge en değerli alan: yüksek ORtg + düşük DRtg.")
+st.caption("Sağ üst bölge en değerli alan: yüksek ORtg + düşük DRtg.")
+st.caption("Yukarı çıktıkça savunma daha iyi, sağa gittikçe hücum daha iyi.")
 
 st.subheader("Multi Player Comparison")
 
@@ -374,6 +452,7 @@ if compare_players:
             size=minute_col,
             text="Player",
             hover_name="Player",
+            custom_data=["Team", "Net Rating", minute_col, game_col],
             size_max=55,
             title="Selected Players Only"
         )
@@ -381,11 +460,27 @@ if compare_players:
         fig_selected_players.update_traces(
             textposition="top center",
             textfont=dict(size=12, color="white"),
-            marker=dict(line=dict(width=2, color="white"))
+            marker=dict(line=dict(width=2, color="white")),
+            hovertemplate=
+            "<b>%{hovertext}</b><br>" +
+            "Team: %{customdata[0]}<br>" +
+            "ORtg: %{x:.1f}<br>" +
+            "DRtg: %{y:.1f}<br>" +
+            "Net Rating: %{customdata[1]:+.1f}<br>" +
+            "Minutes: %{customdata[2]:.1f}<br>" +
+            "Games: %{customdata[3]:.0f}<extra></extra>"
         )
 
-        fig_selected_players.update_yaxes(autorange="reversed", title="DRtg — lower is better")
-        fig_selected_players.update_xaxes(title="ORtg — higher is better")
+        fig_selected_players.update_yaxes(
+            autorange="reversed",
+            title="DRtg — lower is better",
+            gridcolor="rgba(255,255,255,0.10)"
+        )
+
+        fig_selected_players.update_xaxes(
+            title="ORtg — higher is better",
+            gridcolor="rgba(255,255,255,0.10)"
+        )
 
         fig_selected_players.update_layout(
             height=520,
@@ -405,6 +500,7 @@ if compare_players:
                 x=filtered[off_col],
                 y=filtered[def_col],
                 mode="markers",
+                customdata=filtered[["Team", "Net Rating", minute_col, game_col]],
                 marker=dict(
                     size=10,
                     color="rgba(148,163,184,0.25)",
@@ -412,7 +508,14 @@ if compare_players:
                 ),
                 text=filtered["Player"],
                 name="All Players",
-                hovertemplate="%{text}<extra></extra>"
+                hovertemplate=
+                "<b>%{text}</b><br>" +
+                "Team: %{customdata[0]}<br>" +
+                "ORtg: %{x:.1f}<br>" +
+                "DRtg: %{y:.1f}<br>" +
+                "Net Rating: %{customdata[1]:+.1f}<br>" +
+                "Minutes: %{customdata[2]:.1f}<br>" +
+                "Games: %{customdata[3]:.0f}<extra></extra>"
             )
         )
 
@@ -423,12 +526,22 @@ if compare_players:
                 mode="markers+text",
                 text=player_compare["Player"],
                 textposition="top center",
+                customdata=player_compare[["Team", "Net Rating", minute_col, game_col]],
                 marker=dict(
-                    size=22,
+                    size=28,
+                    symbol="star",
                     color="#facc15",
                     line=dict(width=3, color="white")
                 ),
-                name="Selected Players"
+                name="Selected Players",
+                hovertemplate=
+                "<b>%{text}</b><br>" +
+                "Team: %{customdata[0]}<br>" +
+                "ORtg: %{x:.1f}<br>" +
+                "DRtg: %{y:.1f}<br>" +
+                "Net Rating: %{customdata[1]:+.1f}<br>" +
+                "Minutes: %{customdata[2]:.1f}<br>" +
+                "Games: %{customdata[3]:.0f}<extra></extra>"
             )
         )
 
@@ -467,6 +580,11 @@ team_summary = (
     .sort_values("Avg_Net_Rating", ascending=False)
 )
 
+team_summary["Avg_ORtg"] = team_summary["Avg_ORtg"].round(1)
+team_summary["Avg_DRtg"] = team_summary["Avg_DRtg"].round(1)
+team_summary["Avg_Net_Rating"] = team_summary["Avg_Net_Rating"].round(1)
+team_summary["Avg_Minutes"] = team_summary["Avg_Minutes"].round(1)
+
 selected_teams_compare = st.multiselect(
     "Karşılaştırmak istediğin takımları seç",
     sorted(team_summary["Team"].unique()),
@@ -479,7 +597,7 @@ if selected_teams_compare:
         team_summary["Team"].isin(selected_teams_compare)
     ].copy()
 
-    st.dataframe(team_compare.round(1), use_container_width=True, hide_index=True)
+    st.dataframe(team_compare, use_container_width=True, hide_index=True)
 
     tab3, tab4 = st.tabs(["Sadece Seçilen Takımlar", "Tüm Oyuncular İçinde Vurgula"])
 
@@ -513,6 +631,7 @@ if selected_teams_compare:
                 x=base_filtered[off_col],
                 y=base_filtered[def_col],
                 mode="markers",
+                customdata=base_filtered[["Team", "Net Rating", minute_col, game_col]],
                 marker=dict(
                     size=10,
                     color="rgba(148,163,184,0.22)",
@@ -520,7 +639,14 @@ if selected_teams_compare:
                 ),
                 text=base_filtered["Player"],
                 name="All Players",
-                hovertemplate="%{text}<extra></extra>"
+                hovertemplate=
+                "<b>%{text}</b><br>" +
+                "Team: %{customdata[0]}<br>" +
+                "ORtg: %{x:.1f}<br>" +
+                "DRtg: %{y:.1f}<br>" +
+                "Net Rating: %{customdata[1]:+.1f}<br>" +
+                "Minutes: %{customdata[2]:.1f}<br>" +
+                "Games: %{customdata[3]:.0f}<extra></extra>"
             )
         )
 
@@ -531,12 +657,22 @@ if selected_teams_compare:
                 mode="markers+text",
                 text=highlighted_team_players["Player"],
                 textposition="top center",
+                customdata=highlighted_team_players[["Team", "Net Rating", minute_col, game_col]],
                 marker=dict(
-                    size=16,
+                    size=18,
+                    symbol="star",
                     color="#38bdf8",
                     line=dict(width=2, color="white")
                 ),
-                name="Selected Team Players"
+                name="Selected Team Players",
+                hovertemplate=
+                "<b>%{text}</b><br>" +
+                "Team: %{customdata[0]}<br>" +
+                "ORtg: %{x:.1f}<br>" +
+                "DRtg: %{y:.1f}<br>" +
+                "Net Rating: %{customdata[1]:+.1f}<br>" +
+                "Minutes: %{customdata[2]:.1f}<br>" +
+                "Games: %{customdata[3]:.0f}<extra></extra>"
             )
         )
 
@@ -564,9 +700,23 @@ if selected_teams_compare:
 st.subheader("Net Rating Leaderboard")
 
 leaderboard = (
-    filtered[["Player", "Team", off_col, def_col, "Net Rating", minute_col, game_col]]
+    filtered[
+        [
+            "Player",
+            "Team",
+            off_col,
+            def_col,
+            "Net Rating",
+            minute_col,
+            game_col
+        ]
+    ]
     .sort_values("Net Rating", ascending=False)
     .reset_index(drop=True)
 )
 
-st.dataframe(leaderboard, use_container_width=True, hide_index=True)
+st.dataframe(
+    leaderboard,
+    use_container_width=True,
+    hide_index=True
+)
